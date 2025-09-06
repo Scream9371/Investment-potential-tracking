@@ -42,8 +42,8 @@ function [b_next] = IPT(p_close, x_rel, current_t, b_current, win_size, w_YAR, Q
 
     % Check if we have enough data for window-based peak prediction
     if current_t < win_size + 1
-        % Early period: use simple price relative with risk adjustment
-        x_tplus1 = 1.0 .* x_rel(current_t, :) - Q_factor(current_t) .* w_YAR(current_t, :);
+        % Early period: calculate investment potential score with risk adjustment
+        s_hat_tplus1 = 1.0 .* x_rel(current_t, :) - Q_factor(current_t) .* w_YAR(current_t, :);
     else
         % Sufficient data: use peak price prediction from historical window
         closebefore = p_close((current_t - win_size + 1):(current_t), :);
@@ -54,19 +54,19 @@ function [b_next] = IPT(p_close, x_rel, current_t, b_current, win_size, w_YAR, Q
         %               a.*(1-a)^2.*closebefore(3,:) + a.*(1-a)^3.*closebefore(2,:) +
         %               a.*(1-a)^4.*closebefore(1,:));
 
-        % Calculate expected return using predicted peak price
-        x_tplus1 = 1.0 .* (closepredict ./ p_close(current_t, :)) - Q_factor(current_t) .* w_YAR(current_t, :);
+        % Calculate investment potential score using predicted peak price
+        s_hat_tplus1 = 1.0 .* (closepredict ./ p_close(current_t, :)) - Q_factor(current_t) .* w_YAR(current_t, :);
     end
 
-    % Center the return vector by removing mean component
+    % Center the investment potential score by removing mean component
     onesd = ones(nstk, 1);
     centering_matrix = eye(nstk) - onesd * onesd' / nstk; % Centering matrix
-    x_tplus1_cent = centering_matrix * x_tplus1'; % Centered expected returns
+    s_hat_tplus1_cent = centering_matrix * s_hat_tplus1'; % Centered investment potential score
 
     % Update portfolio weights using gradient-based approach
-    if norm(x_tplus1_cent) ~= 0
-        % Normalize the centered returns and apply learning rate
-        b_current = b_current + epsilon * x_tplus1_cent / norm(x_tplus1_cent);
+    if norm(s_hat_tplus1_cent) ~= 0
+        % Normalize the centered score and apply learning rate
+        b_current = b_current + epsilon * s_hat_tplus1_cent / norm(s_hat_tplus1_cent);
     end
 
     % Project portfolio onto simplex to ensure constraints (sum=1, non-negative)

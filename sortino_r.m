@@ -1,24 +1,24 @@
 function [active_factor] = sortino_r(index, inspect_wins)
-% SORTINO_R Calculate active factor based on Sortino ratio for market index data
-%
-%   [active_factor] = sortino_r(index, inspect_wins) computes the active factor
-%   (risk factor) for portfolio adjustment using Sortino ratio methodology on
-%   market index data.
-%
-%   Inputs:
-%       index       - Matrix of market index data (T x N), where T is number of
-%                     time periods and N is number of assets
-%       inspect_wins - Integer, window size for rolling calculation
-%
-%   Output:
-%       active_factor - Matrix of risk factors (T-inspect_wins x N) used for
-%                       portfolio risk management
-%
-%   Algorithm:
-%       1. Calculate rolling mean returns for each asset over the inspection window
-%       2. Compute downside risk (DR) by considering only negative returns
-%       3. Calculate active factor as DR divided by mean returns
-%       4. The result is used to adjust portfolio weights based on market conditions
+    % SORTINO_R Calculate active factor based on Sortino ratio for market index data
+    %
+    %   [active_factor] = sortino_r(index, inspect_wins) computes the active factor
+    %   (risk factor) for portfolio adjustment using Sortino ratio methodology on
+    %   market index data.
+    %
+    %   Inputs:
+    %       index       - Matrix of market index data (T x N), where T is number of
+    %                     time periods and N is number of assets
+    %       inspect_wins - Integer, window size for rolling calculation
+    %
+    %   Output:
+    %       active_factor - Matrix of risk factors (T-inspect_wins x N) used for
+    %                       portfolio risk management
+    %
+    %   Algorithm:
+    %       1. Calculate rolling mean returns for each asset over the inspection window
+    %       2. Compute downside risk (DR) by considering only negative returns
+    %       3. Calculate active factor as DR divided by mean returns
+    %       4. The result is used to adjust portfolio weights based on market conditions
     [T, N] = size(index);
     return_rate_mean_total = ones(T - inspect_wins, N);
 
