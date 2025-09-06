@@ -1,4 +1,4 @@
-function [ cum_wealth, daily_incre_fact, daily_port_total] = RPPT_run(data, win_size, tran_cost,w,r)
+function [ cum_wealth, daily_incre_fact, daily_port_total] = IPT_run(data, win_size, tran_cost,w,r)
 %{
 This function is part of the codes for the Peak Price Tracking (PPT)[1]
 system. It aggressively tracks the increasing power of different assets

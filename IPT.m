@@ -1,4 +1,4 @@
-function [daily_port]=RPPT(close_price,data,tplus1,daily_port, win_size,w,r)
+function [daily_port]=IPT(close_price,data,tplus1,daily_port, win_size,w,r)
 %{
 This function is the main code for the Peak Price Tracking (PPT)[1]
 system. It aggressively tracks the increasing power of different assets
