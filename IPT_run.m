@@ -1,80 +1,68 @@
-function [ cum_wealth, daily_incre_fact, daily_port_total] = IPT_run(data, win_size, tran_cost,w,r)
-%{
-This function is part of the codes for the Peak Price Tracking (PPT)[1]
-system. It aggressively tracks the increasing power of different assets
-such that the better performing assets will receive more investment.
-For any usage of this function, the following papers should be cited as
-reference:
-[1] Zhao-Rong Lai, Dao-Qing Dai, Chuan-Xian Ren, and Ke-Kun Huang. ?°„A peak price tracking 
-based learning system for portfolio selection?°¿, 
-IEEE Transactions on Neural Networks and Learning Systems, 2017. Accepted.
-[2] Zhao-Rong Lai, Dao-Qing Dai, Chuan-Xian Ren, and Ke-Kun Huang.  ?°„Radial basis functions 
-with adaptive input and composite trend representation for portfolio selection?°¿, 
-IEEE Transactions on Neural Networks and Learning Systems, 2018. Accepted.
-[3] Pei-Yi Yang, Zhao-Rong Lai*, Xiaotian Wu, Liangda Fang. ?°„Trend Representation 
-Based Log-density Regularization System for Portfolio Optimization?°¿,  
-Pattern Recognition, vol. 76, pp. 14-24, Apr. 2018.
-At the same time, it is encouraged to cite the following papers with previous related works:
-[4] J. Duchi, S. Shalev-Shwartz, Y. Singer, and T. Chandra, ?°„Efficient
-projections onto the \ell_1-ball for learning in high dimensions,?°¿ in
-Proceedings of the International Conference on Machine Learning (ICML 2008), 2008.
-[5] B. Li, D. Sahoo, and S. C. H. Hoi. Olps: a toolbox for on-line portfolio selection.
-Journal of Machine Learning Research, 17, 2016.
-Inputs:
-data                      -data with price relative sequences
-win_size                  -window size
-tran_cost                 -transaction cost rate
-Outputs:
-cum_wealth                -cumulative wealths
-daily_incre_fact          -daily increasing factors of PPT
-daily_port_total          -daily selected portfolios of PPT
-%}
+function [cum_wealth, daily_return, b_history] = IPT_run(x_rel, win_size, trans_cost, w_YAR, Q_factor)
+    % IPT_run - Main execution of Investment Potential Tracking strategy
+    %
+    % This function implements the core Investment Potential Tracking (IPT) algorithm,
+    % an improved version of Peak Price Tracking (PPT)[1]. It dynamically adjusts
+    % portfolio weights based on asset performance trends and risk factors.
+    %
+    % References:
+    % [1] Zhao-Rong Lai, Dao-Qing Dai, Chuan-Xian Ren, and Ke-Kun Huang. "A peak price tracking 
+    %     based learning system for portfolio selection", IEEE Transactions on Neural Networks and Learning Systems, 2017. Accepted.
+    % [2] Zhao-Rong Lai, Dao-Qing Dai, Chuan-Xian Ren, and Ke-Kun Huang. "Radial basis functions 
+    %     with adaptive input and composite trend representation for portfolio selection", 
+    %     IEEE Transactions on Neural Networks and Learning Systems, 2018. Accepted.
+    % [3] Pei-Yi Yang, Zhao-Rong Lai*, Xiaotian Wu, Liangda Fang. "Trend Representation 
+    %     Based Log-density Regularization System for Portfolio Optimization", 
+    %     Pattern Recognition, vol. 76, pp. 14-24, Apr. 2018.
+    % [4] J. Duchi, S. Shalev-Shwartz, Y. Singer, and T. Chandra. "Efficient
+    %     projections onto the l1-ball for learning in high dimensions", in
+    %     Proceedings of the International Conference on Machine Learning (ICML 2008), 2008.
+    % [5] B. Li, D. Sahoo, and S. C. H. Hoi. Olps: a toolbox for on-line portfolio selection.
+    %     Journal of Machine Learning Research, 17, 2016.
+    %
+    % Inputs:
+    %   x_rel       - T x N matrix of price relatives (daily returns)
+    %   win_size    - Lookback window size for peak price
+    %   trans_cost  - Transaction cost rate (e.g., 0.001 = 0.1%)
+    %   w_YAR       - T x N matrix of Yield-Adjusted Risk (YAR) values
+    %   Q_factor    - T x 1 vector of effect factor coefficients
+    %
+    % Outputs:
+    %   cum_wealth  - T x 1 cumulative wealth curve
+    %   daily_return - T x 1 daily portfolio returns
+    %   b_history   - N x T matrix of portfolio weights over time
 
+    [T, n_assets] = size(x_rel);
 
+    % Initialize variables
+    cum_wealth = ones(T, 1);
+    daily_return = ones(T, 1);
+    b_current = ones(n_assets, 1) / n_assets; % Equal initial weights
+    b_history = zeros(n_assets, T);
+    b_prev = zeros(n_assets, 1); % Previous adjusted weights
 
-[T, N]=size(data);
+    % Construct close price series
+    p_close = cumprod([ones(1, n_assets); x_rel]);
 
-cum_wealth = ones(T, 1);
-daily_incre_fact = ones(T, 1);
+    % Main loop
+    for t = 1:T
+        % Record current portfolio
+        b_history(:, t) = b_current;
 
+        % Calculate daily return with transaction cost
+        port_return = x_rel(t, :) * b_current;
+        turnover_cost = trans_cost / 2 * sum(abs(b_current - b_prev));
+        daily_return(t) = port_return * (1 - turnover_cost);
 
-daily_port = ones(N, 1)/N;  
-daily_port_total=ones(N, T)/N;
-daily_port_o = zeros(N, 1);
+        % Update cumulative wealth
+        cum_wealth(t) = cum_wealth(max(1, t - 1)) * daily_return(t);
 
-close_price = ones(T,N);
-for i=2:T
-    close_price(i,:)= close_price(i-1,:).*data(i,:);
-end
+        % Adjust previous portfolio for cost calculation
+        b_prev = (b_current .* x_rel(t, :)') / (x_rel(t, :) * b_current);
 
-run_ret=1;
-for t = 1:T
+        % Update portfolio for next period (except last)
+        if t < T
+            b_current = IPT(p_close, x_rel, t, b_current, win_size, w_YAR, Q_factor);
+        end
 
-    daily_port_total(:,t)=daily_port;
-    daily_incre_fact(t, 1) = (data(t, :)*daily_port)*(1-tran_cost/2*sum(abs(daily_port-daily_port_o)));
-
-    run_ret = run_ret * daily_incre_fact(t, 1);
-    cum_wealth(t) = run_ret;
-    
-
-    daily_port_o = daily_port.*data(t, :)'/(data(t, :)*daily_port);
-
-
-     if(t<T)
-       [daily_port_n]=RPPT(close_price,data,t,daily_port, win_size,w,r);
-       
-
-       daily_port = daily_port_n;
-    
     end
-    
-
-end
-
-
-
-
-end
-
-
-
