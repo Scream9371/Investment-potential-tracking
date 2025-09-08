@@ -1,13 +1,13 @@
 function [index] = index_compute(data)
-    [m_periods, n_assets] = size(data);
-    stock_price = ones(m_periods, n_assets);
+    [n_periods, m_assets] = size(data);
+    stock_price = ones(n_periods, m_assets);
 
-    for i = 2:m_periods
+    for i = 2:n_periods
         stock_price(i, :) = stock_price(i - 1, :) .* data(i, :);
     end
 
-    index = ones(m_periods, 1);
+    index = ones(n_periods, 1);
 
-    for i = 2:m_periods
+    for i = 2:n_periods
         index(i) = sum(stock_price(i, :)) / sum(stock_price(i - 1, :));
     end

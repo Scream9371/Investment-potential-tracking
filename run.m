@@ -1,37 +1,38 @@
-w_inspect_wins = 252;
-r_inspect_wins = 84;
-win_size = 5;
-tran_cost = 0.001;
+% Window parameters
+win_year = 252; % YAR of each assets window size (~1 year)
+win_season = 84; % UBAH model window size (~4 months)
+win_bp = 5; % Backpropagation window size (BP algorithm)
+
+% Transaction and model parameters
+tran_cost = 0.001; % Transaction cost rate (0.1 %)
 
 % Load dataset
-load('Data Set\nyse-o.mat');
+load('Data Set\nyse-n.mat');
+[n_periods, m_assets] = size(data);
 
-[m_periods, n_assets] = size(data);
+% PPT portfolio weights calculation
+weights_long = zeros(n_periods, m_assets);
+yar_weights_long = yar_weights(data, win_year); % The YAR of each assets in a long-term window
+weights_long(win_year + 1:n_periods, :) = yar_weights_long(:, :);
 
-% Weights for full-year observation window
-b_full_year = zeros(m_periods, n_assets);
-b_value_full_year = sortino_w(data, w_inspect_wins);
-b_full_year(w_inspect_wins + 1:m_periods, :) = b_value_full_year(:, :);
+weights_near = zeros(n_periods, m_assets);
+yar_weights_near = yar_weights(data, win_year / 2); % The YAR of each assets in a near-term window
+weights_near(win_year / 2 + 1:n_periods, :) = yar_weights_near(:, :);
 
-% Weights for half-year observation window
-b_half_year = zeros(m_periods, n_assets);
-b_value_half_year = sortino_w(data, w_inspect_wins / 2);
-b_half_year(w_inspect_wins / 2 + 1:m_periods, :) = b_value_half_year(:, :);
-
+% Calculate UBAH portfolio price index
 index = index_compute(data);
-reverse_factor = 5;
-risk_factor = 5;
 
-% Active factors for full-year observation window
-active_factor_full_year = zeros(m_periods, 1);
-active_factor_value_full_year = sortino_r(index(w_inspect_wins - r_inspect_wins + 1:m_periods, :), r_inspect_wins);
-active_factor_full_year(w_inspect_wins + 1:m_periods, 1) = active_factor_value_full_year(:, 1);
+% YAR factors calculation
+yar_long = zeros(n_periods, 1);
+yar_ubah_long = yar_factors(index(win_season - win_season + 1:n_periods, :), win_season); % YAR of long-term window under the UBAH model
+yar_long(win_season + 1:n_periods, 1) = yar_ubah_long(:, 1);
 
-% Active factors for half-year observation window
-active_factor_half_year = zeros(m_periods, 1);
-active_factor_value_half_year = sortino_r(index(w_inspect_wins / 2 - r_inspect_wins / 2 + 1:datasets_T, :), r_inspect_wins / 2);
-active_factor_half_year(w_inspect_wins / 2 + 1:m_periods, 1) = active_factor_value_half_year(:, 1);
+yar_near = zeros(n_periods, 1);
+yar_ubah_near = yar_factors(index(win_season / 2 - win_season / 2 + 1:n_periods, :), win_season / 2); % YAR of near-term window under the UBAH model
+yar_near(win_season / 2 + 1:n_periods, 1) = yar_ubah_near(:, 1);
 
-[b, r] = active_function(b_value_full_year, b_value_half_year, active_factor_value_full_year, active_factor_value_half_year, data, w_inspect_wins, reverse_factor, risk_factor);
+% Three-state model selection strategy
+[w_YAR, Q] = active_function(yar_weights_long, yar_weights_near, yar_ubah_long, yar_ubah_near, data, win_year);
 
-[cum_wealth, daily_incre_fact, daily_port_total] = IPT_run(data, win_size, tran_cost, w, r);
+% IPT model execution (BP algorithm optimization)
+[cum_wealth, daily_return, b_history] = IPT_run(data, win_bp, tran_cost, w_YAR, Q);

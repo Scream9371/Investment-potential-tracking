@@ -21,31 +21,31 @@ function [cum_wealth, daily_return, b_history] = IPT_run(x_rel, win_size, trans_
     %     Journal of Machine Learning Research, 17, 2016.
     %
     % Inputs:
-    %   x_rel       - T x N matrix of price relatives (daily returns)
-    %   win_size    - Lookback window size for peak price
-    %   trans_cost  - Transaction cost rate (e.g., 0.001 = 0.1%)
-    %   w_YAR       - T x N matrix of Yield-Adjusted Risk (YAR) values
-    %   Q_factor    - T x 1 vector of effect factor coefficients
+    %   x_rel         - T x N matrix of price relatives (daily returns)
+    %   win_size      - Lookback window size for peak price
+    %   trans_cost    - Transaction cost rate (e.g., 0.001 = 0.1%)
+    %   w_YAR         - T x N matrix of Yield-Adjusted Risk (YAR) values
+    %   Q_factor      - T x 1 vector of effect factor coefficients
     %
     % Outputs:
-    %   cum_wealth  - T x 1 cumulative wealth curve
-    %   daily_return - T x 1 daily portfolio returns
-    %   b_history   - N x T matrix of portfolio weights over time
+    %   cum_wealth    - T x 1 cumulative wealth curve
+    %   daily_return  - T x 1 daily portfolio returns
+    %   b_history     - N x T matrix of portfolio weights over time
 
-    [T, n_assets] = size(x_rel);
+    [n_periods, m_assets] = size(x_rel);
 
     % Initialize variables
-    cum_wealth = ones(T, 1);
-    daily_return = ones(T, 1);
-    b_current = ones(n_assets, 1) / n_assets; % Equal initial weights
-    b_history = zeros(n_assets, T);
-    b_prev = zeros(n_assets, 1); % Previous adjusted weights
+    cum_wealth = ones(n_periods, 1);
+    daily_return = ones(n_periods, 1);
+    b_current = ones(m_assets, 1) / m_assets; % Equal initial weights
+    b_history = zeros(m_assets, n_periods);
+    b_prev = zeros(m_assets, 1); % Previous adjusted weights
 
     % Construct close price series
-    p_close = cumprod([ones(1, n_assets); x_rel]);
+    p_close = cumprod([ones(1, m_assets); x_rel]);
 
     % Main loop
-    for t = 1:T
+    for t = 1:n_periods
         % Record current portfolio
         b_history(:, t) = b_current;
 
@@ -61,7 +61,7 @@ function [cum_wealth, daily_return, b_history] = IPT_run(x_rel, win_size, trans_
         b_prev = (b_current .* x_rel(t, :)') / (x_rel(t, :) * b_current);
 
         % Update portfolio for next period (except last)
-        if t < T
+        if t < n_periods
             b_current = IPT(p_close, x_rel, t, b_current, win_size, w_YAR, Q_factor);
         end
 

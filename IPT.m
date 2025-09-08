@@ -31,9 +31,6 @@ function [b_next] = IPT(p_close, x_rel, current_t, b_current, win_size, w_YAR, Q
     %
     % Output:
     %   b_next        - N x 1 vector of updated portfolio weights at time t+1
-    %
-    % Example:
-    %   b_next = IPT(p_close, x_rel, current_t, b_current, win_size, w_YAR, Q_factor);
     
     epsilon = 100; % Learning rate parameter controlling the update step size
     %a = 0.5;
@@ -43,7 +40,7 @@ function [b_next] = IPT(p_close, x_rel, current_t, b_current, win_size, w_YAR, Q
     % Check if we have enough data for window-based peak prediction
     if current_t < win_size + 1
         % Early period: calculate investment potential score with risk adjustment
-        s_hat_tplus1 = 1.0 .* x_rel(current_t, :) - Q_factor(current_t) .* w_YAR(current_t, :);
+        s_hat = 1.0 .* x_rel(current_t, :) - Q_factor(current_t) .* w_YAR(current_t, :);
     else
         % Sufficient data: use peak price prediction from historical window
         closebefore = p_close((current_t - win_size + 1):(current_t), :);
@@ -55,18 +52,18 @@ function [b_next] = IPT(p_close, x_rel, current_t, b_current, win_size, w_YAR, Q
         %               a.*(1-a)^4.*closebefore(1,:));
 
         % Calculate investment potential score using predicted peak price
-        s_hat_tplus1 = 1.0 .* (closepredict ./ p_close(current_t, :)) - Q_factor(current_t) .* w_YAR(current_t, :);
+        s_hat = 1.0 .* (closepredict ./ p_close(current_t, :)) - Q_factor(current_t) .* w_YAR(current_t, :);
     end
 
     % Center the investment potential score by removing mean component
     onesd = ones(nstk, 1);
     centering_matrix = eye(nstk) - onesd * onesd' / nstk; % Centering matrix
-    s_hat_tplus1_cent = centering_matrix * s_hat_tplus1'; % Centered investment potential score
+    s_hat_cent = centering_matrix * s_hat'; % Centered investment potential score
 
     % Update portfolio weights using gradient-based approach
-    if norm(s_hat_tplus1_cent) ~= 0
+    if norm(s_hat_cent) ~= 0
         % Normalize the centered score and apply learning rate
-        b_current = b_current + epsilon * s_hat_tplus1_cent / norm(s_hat_tplus1_cent);
+        b_current = b_current + epsilon * s_hat_cent / norm(s_hat_cent);
     end
 
     % Project portfolio onto simplex to ensure constraints (sum=1, non-negative)
