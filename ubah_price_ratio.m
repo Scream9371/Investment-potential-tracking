@@ -1,8 +1,8 @@
 function [ratio] = ubah_price_ratio(data)
     % ubah_price_ratio calculates UBAH portfolio price ratios for YAR calculation.
     %
-    % This function computes P^{ubah}_t/P^{ubah}_{t-1} ratios for UBAH strategy, 
-    % which are used as input data for calculating Yield-Adjusted Risk (YAR) under 
+    % This function computes P^{ubah}_t/P^{ubah}_{t-1} ratios for UBAH strategy,
+    % which are used as input data for calculating Yield-Adjusted Risk (YAR) under
     % the UBAH model.
     %
     % Input:
@@ -13,21 +13,15 @@ function [ratio] = ubah_price_ratio(data)
     %   ratio  - 1D array of size n × 1 containing UBAH portfolio price ratios
     %           P^{ubah}_t/P^{ubah}_{t-1} for each time period under the UBAH strategy.
 
-    [n_periods, m_assets] = size(data);
+    [datasets_T, datasets_N] = size(data);
+    stock_price = ones(datasets_T, datasets_N);
 
-    % Initialize cumulative stock price matrix starting from 1
-    stock_price = ones(n_periods, m_assets);
-
-    % Calculate cumulative price series for each asset
-    for i = 2:n_periods
+    for i = 2:datasets_T
         stock_price(i, :) = stock_price(i - 1, :) .* data(i, :);
     end
 
-    ratio = ones(n_periods, 1);
+    ratio = ones(datasets_T, 1);
 
-    % Calculate UBAH portfolio index ratios for each time period
-    % This computes P^{ubah}_t/P^{ubah}_{t-1} = sum(stock_price(t,:)) / sum(stock_price(t-1,:))
-    for i = 2:n_periods
+    for i = 2:datasets_T
         ratio(i) = sum(stock_price(i, :)) / sum(stock_price(i - 1, :));
     end
-end

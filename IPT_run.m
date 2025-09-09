@@ -1,4 +1,4 @@
-function [cum_wealth, daily_return, b_history] = IPT_run(x_rel, win_size, trans_cost, w_YAR, Q_factor)
+function [cum_wealth, daily_incre_fact, b_history] = IPT_run(x_rel, win_size, trans_cost, w_YAR, Q_factor)
     % IPT_run - Main execution of Investment Potential Tracking strategy
     %
     % This function implements the core Investment Potential Tracking (IPT) algorithm,
@@ -6,13 +6,13 @@ function [cum_wealth, daily_return, b_history] = IPT_run(x_rel, win_size, trans_
     % portfolio weights based on asset performance trends and risk factors.
     %
     % References:
-    % [1] Zhao-Rong Lai, Dao-Qing Dai, Chuan-Xian Ren, and Ke-Kun Huang. "A peak price tracking 
+    % [1] Zhao-Rong Lai, Dao-Qing Dai, Chuan-Xian Ren, and Ke-Kun Huang. "A peak price tracking
     %     based learning system for portfolio selection", IEEE Transactions on Neural Networks and Learning Systems, 2017. Accepted.
-    % [2] Zhao-Rong Lai, Dao-Qing Dai, Chuan-Xian Ren, and Ke-Kun Huang. "Radial basis functions 
-    %     with adaptive input and composite trend representation for portfolio selection", 
+    % [2] Zhao-Rong Lai, Dao-Qing Dai, Chuan-Xian Ren, and Ke-Kun Huang. "Radial basis functions
+    %     with adaptive input and composite trend representation for portfolio selection",
     %     IEEE Transactions on Neural Networks and Learning Systems, 2018. Accepted.
-    % [3] Pei-Yi Yang, Zhao-Rong Lai*, Xiaotian Wu, Liangda Fang. "Trend Representation 
-    %     Based Log-density Regularization System for Portfolio Optimization", 
+    % [3] Pei-Yi Yang, Zhao-Rong Lai*, Xiaotian Wu, Liangda Fang. "Trend Representation
+    %     Based Log-density Regularization System for Portfolio Optimization",
     %     Pattern Recognition, vol. 76, pp. 14-24, Apr. 2018.
     % [4] J. Duchi, S. Shalev-Shwartz, Y. Singer, and T. Chandra. "Efficient
     %     projections onto the l1-ball for learning in high dimensions", in
@@ -21,48 +21,49 @@ function [cum_wealth, daily_return, b_history] = IPT_run(x_rel, win_size, trans_
     %     Journal of Machine Learning Research, 17, 2016.
     %
     % Inputs:
-    %   x_rel         - n x m matrix of price relatives (daily returns)
-    %   win_size      - Lookback window size for peak price
-    %   trans_cost    - Transaction cost rate (e.g., 0.001 = 0.1%)
-    %   w_YAR         - n x m matrix of Yield-Adjusted Risk (YAR) values
-    %   Q_factor      - n x 1 vector of effect factor coefficients
+    %   x_rel            - n x m matrix of price relatives (daily returns)
+    %   win_size         - Lookback window size for peak price
+    %   trans_cost       - Transaction cost rate (e.g., 0.001 = 0.1%)
+    %   w_YAR            - n x m matrix of Yield-Adjusted Risk (YAR) values
+    %   Q_factor         - n x 1 vector of effect factor coefficients
     %
     % Outputs:
-    %   cum_wealth    - n x 1 cumulative wealth curve
-    %   daily_return  - n x 1 daily portfolio returns
-    %   b_history     - m x n matrix of portfolio weights over time
+    %   cum_wealth       - n x 1 cumulative wealth curve
+    %   daily_incre_fact - n x 1 daily increasing factors
+    %   b_history        - m x n matrix of portfolio weights over time
 
-    [n_periods, m_assets] = size(x_rel);
+    [T, N] = size(x_rel);
 
-    % Initialize variables
-    cum_wealth = ones(n_periods, 1);
-    daily_return = ones(n_periods, 1);
-    b_current = ones(m_assets, 1) / m_assets; % Equal initial weights
-    b_history = zeros(m_assets, n_periods);
-    b_prev = zeros(m_assets, 1); % Previous adjusted weights
+    cum_wealth = ones(T, 1);
+    daily_incre_fact = ones(T, 1);
 
-    % Construct close price series
-    p_close = cumprod([ones(1, m_assets); x_rel]);
+    b_current = ones(N, 1) / N;
+    b_history = ones(N, T) / N;
+    b_prev = zeros(N, 1);
 
-    % Main loop
-    for t = 1:n_periods
-        % Record current portfolio
+    p_close = ones(T, N);
+
+    for i = 2:T
+        p_close(i, :) = p_close(i - 1, :) .* x_rel(i, :);
+    end
+
+    run_ret = 1;
+
+    for t = 1:T
+
         b_history(:, t) = b_current;
+        daily_incre_fact(t, 1) = (x_rel(t, :) * b_current) * (1 - trans_cost / 2 * sum(abs(b_current - b_prev)));
 
-        % Calculate daily return with transaction cost
-        port_return = x_rel(t, :) * b_current;
-        turnover_cost = trans_cost / 2 * sum(abs(b_current - b_prev));
-        daily_return(t) = port_return * (1 - turnover_cost);
+        run_ret = run_ret * daily_incre_fact(t, 1);
+        cum_wealth(t) = run_ret;
 
-        % Update cumulative wealth
-        cum_wealth(t) = cum_wealth(max(1, t - 1)) * daily_return(t);
+        b_prev = b_current .* x_rel(t, :)' / (x_rel(t, :) * b_current);
 
-        % Adjust previous portfolio for cost calculation
-        b_prev = (b_current .* x_rel(t, :)') / (x_rel(t, :) * b_current);
+        if (t < T)
+            [b_next] = IPT(p_close, x_rel, t, b_current, win_size, w_YAR, Q_factor);
 
-        % Update portfolio for next period (except last)
-        if t < n_periods
-            b_current = IPT(p_close, x_rel, t, b_current, win_size, w_YAR, Q_factor);
+            b_current = b_next;
+
         end
 
     end

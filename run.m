@@ -6,44 +6,34 @@
 % 4. Three-state model selection strategy
 % 5. IPT model execution with BP algorithm optimization
 
-% Window parameters
-win_year = 252; % Long-term window size for YAR calculation (~1 year)
-win_4mon = 84; % Window size for UBAH YAR calculation (~4 months)
-win_bp = 5; % Window size for peak price tracking (BP algorithm, ω=5)
+w_inspect_wins = 252;
+r_inspect_wins = 84;
+win_size = 5;
+tran_cost = 0.001;
 
-% Transaction and model parameters
-tran_cost = 0.001; % Transaction cost rate (0.1 %)
-
-% Load dataset
 load('Data Set\nyse-n.mat');
-[n_periods, m_assets] = size(data);
+[datasets_T, datasets_N] = size(data);
 
-% Step 1: Calculate YAR weights for long-term and near-term windows
-% w_{t+1,long-term} and w_{t+1,near-term}
-weights_long = zeros(n_periods, m_assets);
-yar_weights_long = yar_weights(data, win_year); % YAR for each asset in long-term window (d_l = 252)
-weights_long(win_year + 1:n_periods, :) = yar_weights_long(:, :);
+w_full_year = zeros(datasets_T, datasets_N);
+w_value_full_year = yar_weights(data, w_inspect_wins);
+w_full_year(w_inspect_wins + 1:datasets_T, :) = w_value_full_year(:, :);
 
-weights_near = zeros(n_periods, m_assets);
-yar_weights_near = yar_weights(data, win_year / 2); % YAR for each asset in near-term window (d_n = 126)
-weights_near(win_year / 2 + 1:n_periods, :) = yar_weights_near(:, :);
+w_half_year = zeros(datasets_T, datasets_N);
+w_value_half_year = yar_weights(data, w_inspect_wins / 2);
+w_half_year(w_inspect_wins / 2 + 1:datasets_T, :) = w_value_half_year(:, :);
 
-% Step 2: Calculate UBAH portfolio price ratios P^{ubah}_t / P^{ubah}_{t-1}
-% Where P^{ubah}_t = ∑(p_t^i) / m
 ratio = ubah_price_ratio(data);
+reverse_factor = 5;
+risk_factor = 5;
 
-% Step 3: Calculate YAR factors for UBAH model under different windows
-% YAR_{t+1}^{ubah} = [√∑(min(P^{ubah}_t/P^{ubah}_{t-1} - 1, 0))² / n_negative] / [(1/n)∑r_t^i + 1]
-ubah_long = zeros(n_periods, 1);
-yar_ubah_long = yar_ubah(ratio(win_4mon - win_4mon + 1:n_periods, :), win_4mon); % YAR of long-term window under UBAH model
-ubah_long(win_4mon + 1:n_periods, 1) = yar_ubah_long(:, 1);
+active_factor_full_year = zeros(datasets_T, 1);
+active_factor_value_full_year = yar_ubah(ratio(w_inspect_wins - r_inspect_wins + 1:datasets_T, :), r_inspect_wins);
+active_factor_full_year(w_inspect_wins + 1:datasets_T, 1) = active_factor_value_full_year(:, 1);
 
-yar_near = zeros(n_periods, 1);
-yar_ubah_near = yar_ubah(ratio(win_4mon / 2 - win_4mon / 2 + 1:n_periods, :), win_4mon / 2); % YAR of near-term window under UBAH model
-yar_near(win_4mon / 2 + 1:n_periods, 1) = yar_ubah_near(:, 1);
+active_factor_half_year = zeros(datasets_T, 1);
+active_factor_value_half_year = yar_ubah(ratio(w_inspect_wins / 2 - r_inspect_wins / 2 + 1:datasets_T, :), r_inspect_wins / 2);
+active_factor_half_year(w_inspect_wins / 2 + 1:datasets_T, 1) = active_factor_value_half_year(:, 1);
 
-% Step 4: Three-state model selection strategy, determines Q_{t+1} and selects appropriate w_{t+1}
-[w_YAR, Q] = active_function(yar_weights_long, yar_weights_near, yar_ubah_long, yar_ubah_near, data, win_year);
+[w_YAR, Q_factor] = active_function(w_value_full_year, w_value_half_year, active_factor_value_full_year, active_factor_value_half_year, data, w_inspect_wins, reverse_factor, risk_factor);
 
-% Step 5: IPT model execution with BP algorithm optimization, maximizes cumulative wealth through gradient projection
-[cum_wealth, daily_return, b_history] = IPT_run(data, win_bp, tran_cost, w_YAR, Q);
+[cum_wealth, daily_incre_fact, b_history] = IPT_run(data, win_size, tran_cost, w_YAR, Q_factor);
