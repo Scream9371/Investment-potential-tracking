@@ -21,16 +21,16 @@ function [cum_wealth, daily_return, b_history] = IPT_run(x_rel, win_size, trans_
     %     Journal of Machine Learning Research, 17, 2016.
     %
     % Inputs:
-    %   x_rel         - T x N matrix of price relatives (daily returns)
+    %   x_rel         - n x m matrix of price relatives (daily returns)
     %   win_size      - Lookback window size for peak price
     %   trans_cost    - Transaction cost rate (e.g., 0.001 = 0.1%)
-    %   w_YAR         - T x N matrix of Yield-Adjusted Risk (YAR) values
-    %   Q_factor      - T x 1 vector of effect factor coefficients
+    %   w_YAR         - n x m matrix of Yield-Adjusted Risk (YAR) values
+    %   Q_factor      - n x 1 vector of effect factor coefficients
     %
     % Outputs:
-    %   cum_wealth    - T x 1 cumulative wealth curve
-    %   daily_return  - T x 1 daily portfolio returns
-    %   b_history     - N x T matrix of portfolio weights over time
+    %   cum_wealth    - n x 1 cumulative wealth curve
+    %   daily_return  - n x 1 daily portfolio returns
+    %   b_history     - m x n matrix of portfolio weights over time
 
     [n_periods, m_assets] = size(x_rel);
 

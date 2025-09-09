@@ -1,4 +1,4 @@
-function w = simplex_projection_selfnorm2(v, simplex_size)
+function b_next = simplex_projection_selfnorm2(b_current, simplex_size)
     % This function is the simplex projection function exploited by Peak Price Tracking (PPT)[1]
     % and Adaptive Input and Composite Trend Representation (AICTR)[2]. It originates from [4][5].
     %
@@ -18,18 +18,18 @@ function w = simplex_projection_selfnorm2(v, simplex_size)
     %     Journal of Machine Learning Research, 17, 2016.
     %
     % Inputs:
-    % v                  - a d-dimensional portfolio weight vector
+    % b_current          - a d-dimensional portfolio weight vector
     % simplex_size       - the "size" of the simplex, default=1
     %
     % Outputs:
-    % w                  - the projected weight vector satisfying constraints on the simplex
+    % b_next             - the projected weight vector satisfying constraints on the simplex
 
-    while (max(abs(v)) > 1e6)
-        v = v / 10;
+    while (max(abs(b_current)) > 1e6)
+        b_current = b_current / 10;
     end
 
     % Sort components in descending order
-    v_sorted = sort(v, 'descend');
+    v_sorted = sort(b_current, 'descend');
 
     % Compute cumulative sums [4]
     sv = cumsum(v_sorted);
@@ -40,5 +40,5 @@ function w = simplex_projection_selfnorm2(v, simplex_size)
     % Compute shrinkage threshold θ [4]
     theta = (sv(rho) - simplex_size) / rho;
 
-    w = max(v - theta, 0);
+    b_next = max(b_current - theta, 0);
 end

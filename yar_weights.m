@@ -1,9 +1,11 @@
 function [YAR_weights] = yar_weights(data, inspect_wins)
-    % yar_weights - Calculate portfolio weights based on Yield-Adjusted Risk (YAR) for stock price data
+    % yar_weights - Calculate portfolio weights based on Yield-Adjusted Risk (YAR) for stock price data.
     %
     %   [YAR_weights] = yar_weights(data, inspect_wins) computes portfolio weights using
     %   Yield-Adjusted Risk methodology on relative stock price data. The function
-    %   calculates YAR using downside risk adjusted by mean returns as proposed in the IPT paper.
+    %   calculates YAR using downside risk adjusted by mean returns as proposed in IPT.
+    %   Following equation:
+    %   YAR_{t+1}^i = ADV^i_{t+1} / [(1/n)∑r_t^i + 1], where ADV^i_{t+1} = √[∑(min(r_t^i - 1, 0))²] / n_negative.
     %
     %   Inputs:
     %     data          - Matrix of relative stock prices (n × m), where n is number of
@@ -24,43 +26,22 @@ function [YAR_weights] = yar_weights(data, inspect_wins)
     mean_returns_total = ones(n_periods - inspect_wins, m_assets);
 
     for i = 1:n_periods - inspect_wins
-        returns_sample_mean = mean(data(i:inspect_wins + i - 1, :));
-        mean_returns_total(i, :) = returns_sample_mean(1, :);
+        sample_mean_returns = mean(data(i:inspect_wins + i - 1, :));
+        mean_returns_total(i, :) = sample_mean_returns;
     end
-
-    % Calculate total volatility for reference (not used in final YAR but kept for compatibility)
-    total_volatility = ones(n_periods - inspect_wins, m_assets);
-
-    for i = 1:n_periods - inspect_wins
-        returns_minus_one = data(i:inspect_wins + i - 1, :) - 1;
-        volatility_sum_sqrt = ones(1, m_assets);
-        returns_sample = ones(1, inspect_wins);
-
-        for j = 1:m_assets
-
-            for k = 1:inspect_wins
-                returns_sample(1, k) = (returns_minus_one(k, j)) ^ 2;
-            end
-
-            volatility_sum_sqrt(1, j) = sqrt(sum(returns_sample) / (inspect_wins));
-        end
-
-        total_volatility(i, :) = volatility_sum_sqrt(1, :);
-    end
-
+    
     % Calculate ADV (Average Downside Volatility) - core component of YAR
     ADV_total = ones(n_periods - inspect_wins, m_assets);
 
     for i = 1:n_periods - inspect_wins
         negative_periods_count = zeros(1, m_assets);
-        returns_minus_one = data(i:inspect_wins + i - 1, :) - 1;
-        % returns_minus_mean = data(i:inspect_wins+i-1,:)-mean(data(i:inspect_wins+i-1,:));
+        negative_returns = data(i:inspect_wins + i - 1, :) - 1;
         for k = 1:inspect_wins
 
             for j = 1:m_assets
 
-                if returns_minus_one(k, j) > 0
-                    returns_minus_one(k, j) = 0;
+                if negative_returns(k, j) > 0
+                    negative_returns(k, j) = 0;
                 else
                     negative_periods_count(1, j) = negative_periods_count(1, j) + 1;
                 end
@@ -75,11 +56,11 @@ function [YAR_weights] = yar_weights(data, inspect_wins)
         for j = 1:m_assets
 
             for k = 1:inspect_wins
-                downside_returns_sample(1, k) = (returns_minus_one(k, j)) ^ 2;
+                downside_returns_sample(1, k) = (negative_returns(k, j)) ^ 2;
             end
 
-            % ADV calculation: sqrt(sum(negative_returns_squared) / negative_periods_count)
-            downside_volatility_sqrt(1, j) = sqrt(sum(downside_returns_sample) / (negative_periods_count(1, j)));
+            % ADV calculation
+            downside_volatility_sqrt(1, j) = sqrt(sum(downside_returns_sample)) / (negative_periods_count(1, j));
         end
 
         ADV_total(i, :) = downside_volatility_sqrt(1, :);

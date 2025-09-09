@@ -6,7 +6,7 @@ function [w_YAR, Q] = active_function(yar_weights_long, yar_weights_near, yar_ub
     %   market conditions by integrating recent trend, reversal potential and
     %   historical risk to calculate investment potential scores and model parameters.
     %
-    %   This function is a core component of the Investment Potential Tracking (IPT) 
+    %   This function is a core component of the Investment Potential Tracking (IPT)
     %   model, implementing the three-state selection strategy. It dynamically selects
     %   appropriate investment strategies based on overall market risk levels and outputs
     %   corresponding investment potential scores and model parameters Q_{t+1}.
@@ -29,59 +29,59 @@ function [w_YAR, Q] = active_function(yar_weights_long, yar_weights_near, yar_ub
     %   w_YAR                    - Selected YAR weight matrix (n × m)
     %   Q                        - Model parameter Q_{t+1} vector (n × 1)
     %                              Represent different market states and strategies
-    
+
     % Initialize model parameters
-    alpha_reverse = 5;         % Reversal coefficient for reversal effect intensity
-    beta_reverse = 2;          % Reversal multiplier for enhancing reversal intensity  
-    alpha_risk = 5;            % Risk coefficient for risk effect intensity
-    beta_risk = 2;             % Risk multiplier for enhancing risk intensity
-    q = 0.2;                   % Percentage value for distinguishing risk levels (20%)
-    L = 0.006;                 % Maximum YAR value under normal conditions
-    
+    alpha_reverse = 5; % Reversal coefficient for reversal effect intensity
+    beta_reverse = 2; % Reversal multiplier for enhancing reversal intensity
+    alpha_risk = 5; % Risk coefficient for risk effect intensity
+    beta_risk = 2; % Risk multiplier for enhancing risk intensity
+    q = 0.2; % Percentage value for distinguishing risk levels (20 %)
+    L = 0.006; % Maximum YAR value under normal conditions
+
     % Calculate risk thresholds based on parameters' setting
     extremely_low_risk_threshold = q * L / 2;
     low_risk_threshold = q * L;
     normal_risk_threshold = (1 - q) * L;
-    high_risk_threshold = (1 - q/2) * L;
-    
+    high_risk_threshold = (1 - q / 2) * L;
+
     % Initialize output matrices following problem setting: m = assets, n = periods
     [n_periods, m_assets] = size(data);
-    w_YAR = zeros(n_periods, m_assets);         % Investment potential score matrix (n × m)
-    Q = zeros(n_periods, 1);                   % Model parameter Q_{t+1} vector (n × 1)
+    w_YAR = zeros(n_periods, m_assets); % Investment potential score matrix (n × m)
+    Q = zeros(n_periods, 1); % Model parameter Q_{t+1} vector (n × 1)
 
     % Iterate through each time period to determine optimal strategy
     for i = 1:n_periods - win_long
 
         % State 1: Extremely Low Risk Market (YAR <= extremely_low_risk_threshold)
         if yar_ubah_long(i) <= extremely_low_risk_threshold
-            Q(i + win_long) = -beta_reverse * alpha_reverse;     % Q_{t+1} = -10
-            w_YAR(i + win_long, :) = yar_weights_long(i, :);    % Use long-term portfolio weights
-            
-        % State 2: Low Risk Market (extremely_low_risk_threshold < YAR <= low_risk_threshold)
+            Q(i + win_long) = -beta_reverse * alpha_reverse; % Q_{t+1} = -10
+            w_YAR(i + win_long, :) = yar_weights_long(i, :); % Use long-term portfolio weights
+
+            % State 2: Low Risk Market (extremely_low_risk_threshold < YAR <= low_risk_threshold)
         elseif yar_ubah_long(i) <= low_risk_threshold
-            Q(i + win_long) = -alpha_reverse;         % Q_{t+1} = -5
-            w_YAR(i + win_long, :) = yar_weights_long(i, :);    % Use long-term portfolio weights
-            
-        % State 3: Normal/High Risk Market (YAR > low_risk_threshold)
+            Q(i + win_long) = -alpha_reverse; % Q_{t+1} = -5
+            w_YAR(i + win_long, :) = yar_weights_long(i, :); % Use long-term portfolio weights
+
+            % State 3: Normal/High Risk Market (YAR > low_risk_threshold)
         else
 
             % Analyze near-term risk using half-year window for finer granularity
             % Note: Index adjustment (i + win_long / 2) aligns with half-year timing
-            
+
             % State 3a: Normal Risk sub-state (YAR <= normal_risk_threshold)
             if yar_ubah_near(i + win_long / 2) <= normal_risk_threshold
-                Q(i + win_long) = 0;                                  % Q_{t+1} = 0
-                w_YAR(i + win_long, :) = yar_weights_near(i + win_long / 2, :);  % Use near-term weights
-                
-            % State 3b: High Risk sub-state (normal_risk_threshold < YAR <= high_risk_threshold)
+                Q(i + win_long) = 0; % Q_{t+1} = 0
+                w_YAR(i + win_long, :) = yar_weights_near(i + win_long / 2, :); % Use near-term weights
+
+                % State 3b: High Risk sub-state (normal_risk_threshold < YAR <= high_risk_threshold)
             elseif yar_ubah_near(i + win_long / 2) <= high_risk_threshold
-                Q(i + win_long) = alpha_risk;                           % Q_{t+1} = 5
-                w_YAR(i + win_long, :) = yar_weights_near(i + win_long / 2, :);  % Use near-term weights
-                
-            % State 3c: Extremely High Risk sub-state (YAR > high_risk_threshold)
+                Q(i + win_long) = alpha_risk; % Q_{t+1} = 5
+                w_YAR(i + win_long, :) = yar_weights_near(i + win_long / 2, :); % Use near-term weights
+
+                % State 3c: Extremely High Risk sub-state (YAR > high_risk_threshold)
             else
-                Q(i + win_long) = beta_risk * alpha_risk;                   % Q_{t+1} = 10
-                w_YAR(i + win_long, :) = yar_weights_near(i + win_long / 2, :);  % Use near-term weights for maximum risk control
+                Q(i + win_long) = beta_risk * alpha_risk; % Q_{t+1} = 10
+                w_YAR(i + win_long, :) = yar_weights_near(i + win_long / 2, :); % Use near-term weights for maximum risk control
             end
         end
     end

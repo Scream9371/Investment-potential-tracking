@@ -21,16 +21,16 @@ function [b_next] = IPT(p_close, x_rel, current_t, b_current, win_size, w_YAR, Q
     %     Journal of Machine Learning Research, 17, 2016.
     %
     % Inputs:
-    %   p_close       - T x N matrix of close price sequences for T time periods and N assets
-    %   x_rel         - T x N matrix of price relative sequences (daily price ratios)
+    %   p_close       - n x m matrix of close price sequences for n time periods and m assets
+    %   x_rel         - n x m matrix of price relative sequences (daily price ratios)
     %   current_t     - Current time step t (integer)
-    %   b_current     - N x 1 vector of portfolio weights at time t
+    %   b_current     - m x 1 vector of portfolio weights at time t
     %   win_size      - Window size for peak price calculation (integer)
-    %   w_YAR         - T x N matrix of Yield-Adjusted Risk values
-    %   Q_factor      - T x 1 vector of effect factor coefficients
+    %   w_YAR         - n x m matrix of Yield-Adjusted Risk values
+    %   Q_factor      - n x 1 vector of effect factor coefficients
     %
     % Output:
-    %   b_next        - N x 1 vector of updated portfolio weights at time t+1
+    %   b_next        - m x 1 vector of updated portfolio weights at time t+1
     
     epsilon = 100; % Learning rate parameter controlling the update step size
     %a = 0.5;
