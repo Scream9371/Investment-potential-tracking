@@ -11,7 +11,7 @@ wins_4mons = 84;
 win_size = 5;
 tran_cost = 0.001;
 
-load('Data Set\nyse-n.mat');
+load('Data Set\djia.mat');
 [n_periods, m_assets] = size(data);
 
 w_full_year = zeros(n_periods, m_assets);
