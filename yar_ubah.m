@@ -15,12 +15,6 @@ function [YAR_ubah] = yar_ubah(ratio, inspect_wins)
     %   Output:
     %     YAR_ubah       - Matrix of YAR factors (n - inspect_wins × 1) used for
     %                      portfolio risk management and adjustment
-    %
-    %   Algorithm (following IPT paper):
-    %       1. Calculate rolling mean returns for each asset over the inspection window
-    %       2. Compute ADV (Average Downside Volatility) by considering only negative returns
-    %       3. Calculate YAR factor as ADV divided by (mean returns + 1)
-    %       4. The result is used to adjust portfolio weights based on market conditions
 
     [n_periods, m_assets] = size(ratio);
     mean_returns_total = ones(n_periods - inspect_wins, m_assets);
@@ -66,5 +60,5 @@ function [YAR_ubah] = yar_ubah(ratio, inspect_wins)
         ADV_total(i, :) = downside_volatility_sqrt(1, :);
     end
 
-    % Calculate YAR factor = ADV / (mean_returns + 1)
-    YAR_ubah = ADV_total ./ (mean_returns_total + 1);
+    % Calculate YAR factor = ADV / mean_returns
+    YAR_ubah = ADV_total ./ mean_returns_total;

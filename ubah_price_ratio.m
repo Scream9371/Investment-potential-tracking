@@ -13,15 +13,15 @@ function [ratio] = ubah_price_ratio(data)
     %   ratio  - 1D array of size n × 1 containing UBAH portfolio price ratios
     %           P^{ubah}_t/P^{ubah}_{t-1} for each time period under the UBAH strategy.
 
-    [datasets_T, datasets_N] = size(data);
-    stock_price = ones(datasets_T, datasets_N);
+    [n_periods, m_assets] = size(data);
+    stock_price = ones(n_periods, m_assets);
 
-    for i = 2:datasets_T
+    for i = 2:n_periods
         stock_price(i, :) = stock_price(i - 1, :) .* data(i, :);
     end
 
-    ratio = ones(datasets_T, 1);
+    ratio = ones(n_periods, 1);
 
-    for i = 2:datasets_T
+    for i = 2:n_periods
         ratio(i) = sum(stock_price(i, :)) / sum(stock_price(i - 1, :));
     end

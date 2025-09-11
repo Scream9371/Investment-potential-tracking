@@ -15,12 +15,6 @@ function [YAR_weights] = yar_weights(data, inspect_wins)
     %   Output:
     %     YAR_weights   - Matrix of Yield-Adjusted Risk weights (n - inspect_wins × m) representing
     %                     the risk-adjusted investment allocation for each asset
-    %
-    %   Algorithm (following IPT paper):
-    %       1. Calculate rolling mean returns for each asset over the inspection window
-    %       2. Compute ADV (Average Downside Volatility) using only negative returns
-    %       3. Calculate YAR as ADV divided by (mean returns + 1) for numerical stability
-    %       4. Return YAR as portfolio weights for asset allocation
 
     [n_periods, m_assets] = size(data);
     mean_returns_total = ones(n_periods - inspect_wins, m_assets);
@@ -66,5 +60,5 @@ function [YAR_weights] = yar_weights(data, inspect_wins)
         ADV_total(i, :) = downside_volatility_sqrt(1, :);
     end
 
-    % Calculate YAR (Yield-Adjusted Risk) = ADV / (mean_returns + 1)
-    YAR_weights = ADV_total ./ (mean_returns_total + 1);
+    % Calculate YAR (Yield-Adjusted Risk) = ADV / mean_returns
+    YAR_weights = ADV_total ./ mean_returns_total;
