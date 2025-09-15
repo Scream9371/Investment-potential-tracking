@@ -60,5 +60,4 @@ function [YAR_ubah] = yar_ubah(ratio, inspect_wins)
         ADV_total(i, :) = downside_volatility_sqrt(1, :);
     end
 
-    % Calculate YAR factor = ADV / mean_returns
     YAR_ubah = ADV_total ./ mean_returns_total;

@@ -60,5 +60,4 @@ function [YAR_weights] = yar_weights(data, inspect_wins)
         ADV_total(i, :) = downside_volatility_sqrt(1, :);
     end
 
-    % Calculate YAR (Yield-Adjusted Risk) = ADV / mean_returns
     YAR_weights = ADV_total ./ mean_returns_total;
